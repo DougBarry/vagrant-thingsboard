@@ -3,6 +3,11 @@ require 'vagrant-vbguest'
 
 # thingsboard REQUIRES Oracle Java, openjdk wont cut it. Get linux x64 tar.gz from: https://www.oracle.com/technetwork/java/javase/downloads/jre8-downloads-2133155.html
 # This file gets you to about here: https://thingsboard.io/docs/user-guide/install/linux/#configure-thingsboard-to-use-the-external-database
+# for user account details see: https://thingsboard.io/docs/samples/demo-account/
+# Default system administrator account:
+# login - sysadmin@thingsboard.org.
+# password - sysadmin.
+
 
 VAGRANTFILE_API_VERSION = "2"
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
@@ -36,7 +41,7 @@ EOF
 
 # update alternatives
 update-alternatives --install "/usr/bin/java" "java" "${JRE_LOCATION}/bin/java" 1 >> /dev/null
-update-alternatives --set java ${JRE_DEST_DIR}/jre/bin/java >> /dev/null
+update-alternatives --set java ${JRE_LOCATION}/bin/java >> /dev/null
 
 # defo remove openjdk
 apt-get purge -q openjdk-\*
