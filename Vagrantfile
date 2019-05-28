@@ -1,6 +1,7 @@
 require 'vagrant-hosts'
 require 'vagrant-vbguest'
 
+# Warning this will set no firewall rules!
 # thingsboard REQUIRES Oracle Java, openjdk wont cut it. Get linux x64 tar.gz from: https://www.oracle.com/technetwork/java/javase/downloads/jre8-downloads-2133155.html
 # This file gets you to about here: https://thingsboard.io/docs/user-guide/install/linux/#configure-thingsboard-to-use-the-external-database
 # for user account details see: https://thingsboard.io/docs/samples/demo-account/
@@ -13,10 +14,14 @@ VAGRANTFILE_API_VERSION = "2"
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
   $ubuntu_prepare = <<-SCRIPT
+# Update the OS
 apt-get -y update
+# Remove the default jre as we are going to put on Oracle JRE for thingsboard
 apt-get -y remove default-jre
+# Ensure some quality of life stuff is installed
+apt-get -y install screen vim htop
 
-JRE_ARCHIVE_SOURCE_DIR=/vagrant
+JRE_ARCHIVE_SOURCE_DIR=/vagrant/data
 JRE_ARCHiVE_FILE=${JRE_ARCHIVE_SOURCE_DIR}/jre-8u212-linux-x64.tar.gz
 JRE_VERSION=`tar -tf $JRE_ARCHiVE_FILE | egrep '^[^/]+/$' | head -c -2` 2>> /dev/null
 JRE_DEST_DIR=/usr/local/java
@@ -55,9 +60,15 @@ apt-get -y install cassandra
 ## Tools installation
 apt-get -y install cassandra-tools
 
-cd /tmp
-wget https://github.com/thingsboard/thingsboard/releases/download/v2.3.1/thingsboard-2.3.1.deb
-dpkg -i thingsboard-2.3.1.deb
+# Download the thingsboard deb
+wget --quiet --output-document /tmp/thingsboard-2.3.1.deb https://github.com/thingsboard/thingsboard/releases/download/v2.3.1/thingsboard-2.3.1.deb
+dpkg -i /tmp/thingsboard-2.3.1.deb
+
+# Copy over our config with cassandra stuff in
+/bin/cp -f /vagrant/config/thingsboard.yml /etc/thingsboard/conf/thingsboard.yml
+
+# Run the thingsboard installer with demo content, and if successful, start the service
+/usr/share/thingsboard/bin/install/install.sh --loadDemo && systemctl start thingsboard
 
 SCRIPT
 
@@ -69,7 +80,8 @@ SCRIPT
   end
 
   # Specifcally disable the default vagrant mapping to prevent accidental modifications
-  config.vm.synced_folder "./data", "/vagrant", disabled: false
+  config.vm.synced_folder "./data", "/vagrant/data", disabled: false
+  config.vm.synced_folder "./config", "/vagrant/config", disabled: false
 
   # Define the vagrant name of our VM
   config.vm.define "experiments-thingsboard" do |host|
